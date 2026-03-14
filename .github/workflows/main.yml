@@ -1,0 +1,36 @@
+name: Build MacAttack EXE
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller requests semver PyQt5 python-vlc
+        
+    - name: Compile Application with PyInstaller
+      run: |
+        pyinstaller --onefile --add-data "include;include" --add-binary "libvlc.dll;." --add-binary "libvlccore.dll;." --add-data "plugins;plugins" --hidden-import=charset_normalizer.md__mypyc --icon=icon.ico MacAttack.pyw
+        
+    - name: Upload executable as Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: MacAttack-Executable
+        path: dist/MacAttack.exe
+        retention-days: 90
