@@ -1,6 +1,6 @@
 # TODO:
 # Clean up code, remove redundancy
-VERSION = "4.7.6"
+VERSION = "4.7.7"
 import semver
 import urllib.parse
 import webbrowser
@@ -1101,51 +1101,51 @@ class MacAttack(QMainWindow):
         QApplication.setStyle("Fusion")
         theme = """
         QWidget {
-            background-color:  #2e2e2e;
-            color: white;
+            background-color: #1A1A1D;
+            color: #E2E2E2;
             font-size: 10pt;
+            font-family: "Segoe UI", "Helvetica Neue", sans-serif;
         }
-        QLineEdit, QPushButton, QTabWidget {
-            background-color:  #444444;
+        QLineEdit, QTextEdit, QComboBox {
+            background-color: #2D2D34;
             color: white;
-            border: 0px solid  #666666;
-            padding: 5px;
-            border-radius: 3px;
+            border: 1px solid #4E4E57;
+            padding: 6px;
+            border-radius: 5px;
         }
-        QLineEdit:focus, QPushButton:pressed {
-            background-color:  #666666;
+        QLineEdit:focus, QTextEdit:focus, QComboBox:focus {
+            border: 1px solid #6D68F7;
+            background-color: #34343C;
         }
+        QPushButton {
+            background-color: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 1, stop: 0 #6D68F7, stop: 1 #4B46E5);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        QPushButton:hover {
+            background-color: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 1, stop: 0 #8580FC, stop: 1 #5D58F7);
+        }
+        QPushButton:pressed { background-color: #3A35B3; }
+        QPushButton:disabled { background-color: #3E3E46; color: #8C8C94; }
+        QTabWidget::pane { border: 1px solid #3E3E46; border-radius: 5px; background-color: #212125; }
         QTabBar::tab {
-            background-color:  #444444;
-            color: white;
-            padding-top: 5px;
-            padding-right: 5px;
-            padding-bottom: 5px;
-            padding-left: 5px;
-            border-top-left-radius: 10px;
-            border-top-right-radius: 10px;
-            border-bottom-left-radius: 0px;
-            border-bottom-right-radius: 0px;
+            background-color: #2D2D34; color: #A1A1AA;
+            padding: 8px 20px; border-top-left-radius: 6px; border-top-right-radius: 6px; margin-right: 2px; font-weight: bold;
         }
-        QTabBar::tab:selected {
-            background-color:  #666666;
-        }
-        QProgressBar {
-            text-align: center;
-            color: white;
-            background-color:  #555555;
-        }
-        QProgressBar::chunk {
-            background-color:  #1e90ff;
-        }
-        QCheckBox {
-            background-color:  #666666;
-            padding: 5px;
-            border: 2px solid black;
-        }
-        QCheckBox:checked {
-            background-color: green;
-        }
+        QTabBar::tab:selected { background-color: #212125; color: #6D68F7; border: 1px solid #3E3E46; border-bottom-color: #212125; }
+        QTabBar::tab:hover:!selected { background-color: #3E3E46; color: white; }
+        QProgressBar { text-align: center; color: white; background-color: #2D2D34; border-radius: 4px; font-weight: bold; }
+        QProgressBar::chunk { background-color: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 0, stop: 0 #6D68F7, stop: 1 #A755F2); border-radius: 4px; }
+        QCheckBox { spacing: 8px; font-size: 10pt; background: transparent; border: none; }
+        QCheckBox::indicator { width: 18px; height: 18px; border-radius: 4px; border: 1px solid #4E4E57; background-color: #2D2D34; }
+        QCheckBox::indicator:hover { border: 1px solid #6D68F7; }
+        QCheckBox::indicator:checked { background-color: #6D68F7; border: 1px solid #6D68F7; }
+        QSlider::groove:horizontal { border-radius: 4px; height: 8px; background-color: #2D2D34; }
+        QSlider::handle:horizontal { background-color: #6D68F7; border: none; height: 16px; width: 16px; margin: -4px 0; border-radius: 8px; }
+        QSlider::handle:horizontal:hover { background-color: #8580FC; }
         """
         self.setStyleSheet(theme)
         # Main layout
@@ -1905,16 +1905,24 @@ class MacAttack(QMainWindow):
 
         general_layout.addSpacing(20)
 
-        # The "Custom MACs" section
-        macs_label = QLabel("Custom MACs:")
+        # The "Smart MAC Generation" section
+        macs_label = QLabel("MAC Generation Customization:")
         general_layout.addWidget(macs_label)
 
+        smart_mac_layout = QHBoxLayout()
         # "Use Custom MAC Addresses" checkbox
         self.use_custom_macs_checkbox = QCheckBox("Use Custom MAC Addresses")
         self.use_custom_macs_checkbox.stateChanged.connect(
             self.toggle_custom_macs_options
         )  # Connect signal to function
-        general_layout.addWidget(self.use_custom_macs_checkbox)
+        smart_mac_layout.addWidget(self.use_custom_macs_checkbox)
+
+        # "Sequential MAC Generation" checkbox
+        self.sequential_mac_checkbox = QCheckBox("Sequential MAC Generation")
+        smart_mac_layout.addWidget(self.sequential_mac_checkbox)
+        smart_mac_layout.addStretch(1)
+        
+        general_layout.addLayout(smart_mac_layout)
 
         # Horizontal layout for file selection button, selected file label, "Mac Addresses in Pool:" label, and "macs_in_mem" label
         file_selection_layout = QHBoxLayout()
@@ -2482,8 +2490,10 @@ class MacAttack(QMainWindow):
         layout.addSpacing(15)  # Adds space
 
         # IPTV link input
-        self.iptv_link_label = QLabel("IPTV link:")
-        self.iptv_link_entry = QLineEdit("http://evilvir.us.streamtv.to:8080/c/")
+        self.iptv_link_label = QLabel("IPTV Link(s):")
+        self.iptv_link_entry = QTextEdit("http://evilvir.us.streamtv.to:8080/c/")
+        self.iptv_link_entry.setMaximumHeight(60)
+        self.iptv_link_entry.setMinimumWidth(250)
         combined_layout.addWidget(self.iptv_link_label)
         combined_layout.addWidget(self.iptv_link_entry)
 
@@ -2516,26 +2526,20 @@ class MacAttack(QMainWindow):
         self.start_button.setDisabled(False)
         self.stop_button.setDisabled(True)
 
-        # Button styles
+        # Button styles matching modern gradient
         self.stop_button.setStyleSheet(
             """
-            QPushButton:disabled {
-                background-color: grey;
-            }
-            QPushButton:enabled {
-                background-color: red;
-            }
-        """
+            QPushButton:disabled { background-color: #3E3E46; color: #8C8C94; }
+            QPushButton:enabled { background-color: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 1, stop: 0 #F43F5E, stop: 1 #E11D48); }
+            QPushButton:enabled:hover { background-color: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 1, stop: 0 #FB7185, stop: 1 #BE123C); }
+            """
         )
         self.start_button.setStyleSheet(
             """
-            QPushButton:disabled {
-                background-color: grey;
-            }
-            QPushButton:enabled {
-                background-color: green;
-            }
-        """
+            QPushButton:disabled { background-color: #3E3E46; color: #8C8C94; }
+            QPushButton:enabled { background-color: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 1, stop: 0 #10B981, stop: 1 #059669); }
+            QPushButton:enabled:hover { background-color: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 1, stop: 0 #34D399, stop: 1 #047857); }
+            """
         )
 
         right_spacer = QSpacerItem(10, 0, QSizePolicy.Fixed, QSizePolicy.Minimum)
@@ -2836,7 +2840,7 @@ class MacAttack(QMainWindow):
             "prefer_accuracy": str(
                 self.prefer_accuracy_radio.isChecked()
             ),  # Save the state of the 'Prefer Accuracy' radio button
-            "iptv_link": self.iptv_link_entry.text(),
+            "iptv_link": self.iptv_link_entry.toPlainText(),
             "concurrent_tests": self.concurrent_tests.value(),
             "hostname": self.hostname_input.text(),
             "mac": self.mac_input.text(),
@@ -2865,6 +2869,7 @@ class MacAttack(QMainWindow):
             "proxy_input": self.proxy_input.text(),
             "output_buffer": str(self.output_buffer_spinbox.value()),
             "dont_update": str(self.dont_update_checkbox.isChecked()),
+            "sequential_mac_gen": "True" if hasattr(self, 'sequential_mac_checkbox') and self.sequential_mac_checkbox.isChecked() else "False",
             "proxy_location_output": str(
                 self.proxy_location_output_checkbox.isChecked()
             ),
@@ -2900,6 +2905,11 @@ class MacAttack(QMainWindow):
                     "Settings", "mac_file", fallback="No file selected"
                 )  # Restore the label text
             )
+            # Load Sequential MAC setting
+            seq_val = config.get("Settings", "sequential_mac_gen", fallback="False")
+            if hasattr(self, 'sequential_mac_checkbox'):
+                self.sequential_mac_checkbox.setChecked(seq_val == "True")
+
             self.custom_random_mac_checkbox.setChecked(
                 config.get("Settings", "custom_random_mac", fallback="False") == "True"
             )
@@ -2909,7 +2919,7 @@ class MacAttack(QMainWindow):
             self.prefer_speed_radio.setChecked(
                 config.get("Settings", "prefer_speed", fallback="False") == "True"
             )
-            self.iptv_link_entry.setText(
+            self.iptv_link_entry.setPlainText(
                 config.get("Settings", "iptv_link", fallback="")
             )
             self.hostname_input.setText(config.get("Settings", "hostname", fallback=""))
@@ -3049,6 +3059,12 @@ class MacAttack(QMainWindow):
         self.setWindowIcon(QIcon(pixmap))
 
     def TestDrive(self):
+        urls = [url.strip() for url in self.iptv_link_entry.toPlainText().splitlines() if url.strip()]
+        if not urls:
+            self.update_error_text_signal.emit("ERROR: No Valid URL provided in the queue.")
+            return
+        self.portal_queue = deque(urls)
+        
         self.cleaningup = 0
         self.nomacs = 1
         self.update_error_text_signal.emit("clearall")
@@ -3128,8 +3144,12 @@ class MacAttack(QMainWindow):
         global portaltype
         portal_type_detected = True
 
-        # Get and parse the IPTV link
-        self.iptv_link = self.iptv_link_entry.text()
+        # Get and parse the IPTV link from the queue
+        if hasattr(self, 'portal_queue') and self.portal_queue:
+            self.iptv_link = self.portal_queue.popleft()
+        else:
+            self.update_error_text_signal.emit("ERROR: Multi-portal queue is empty.")
+            return
 
         self.parsed_url = urlparse(self.iptv_link)
         self.parsed_path = self.parsed_url.path
@@ -3282,10 +3302,20 @@ class MacAttack(QMainWindow):
 
     def RandomMacGenerator(self, prefix="00:1A:79:"):
         custommacs = self.use_custom_macs_checkbox.isChecked()
+        sequential = hasattr(self, 'sequential_mac_checkbox') and self.sequential_mac_checkbox.isChecked()
 
         if not custommacs:
-            # Generate a random MAC
-            return f"{prefix}{random.randint(0, 255):02X}:{random.randint(0, 255):02X}:{random.randint(0, 255):02X}"
+            if sequential:
+                if not hasattr(self, 'sequential_mac_counter'):
+                    # Start from a random starting point or 00:00:00
+                    self.sequential_mac_counter = 0
+                
+                mac_suffix = f"{(self.sequential_mac_counter >> 16) & 0xFF:02X}:{(self.sequential_mac_counter >> 8) & 0xFF:02X}:{self.sequential_mac_counter & 0xFF:02X}"
+                self.sequential_mac_counter = (self.sequential_mac_counter + 1) & 0xFFFFFF
+                return f"{prefix}{mac_suffix}"
+            else:
+                # Generate a random MAC
+                return f"{prefix}{random.randint(0, 255):02X}:{random.randint(0, 255):02X}:{random.randint(0, 255):02X}"
         else:
             if not self.mac_dict:
                 logging.info("MAC deque is empty!")
@@ -3585,6 +3615,9 @@ class MacAttack(QMainWindow):
                         logging.debug(res1_a.text)
                         client_ip = None
                         exp_billing = None
+                        tariff_plan = None
+                        stb_type_found = None
+                        adult_password = None
                         if res1_a.text:
                             data = json.loads(res1_a.text)
                             if "js" in data and "ip" in data["js"]:
@@ -3592,6 +3625,11 @@ class MacAttack(QMainWindow):
 
                             if "js" in data and "expire_billing_date" in data["js"]:
                                 exp_billing = data["js"]["expire_billing_date"]
+
+                            if "js" in data:
+                                tariff_plan = data["js"].get("tariff_plan_name") or data["js"].get("tariff_plan") or data["js"].get("tariff_expired_name")
+                                stb_type_found = data["js"].get("stb_type") or data["js"].get("sn_model") or "MAG250"
+                                adult_password = data["js"].get("parent_password") or data["js"].get("adult_password")
 
                         url2 = f"{base_url}{portaltype}?type=account_info&action=get_main_info&JsHttpRequest=1-xml"
 
@@ -3833,19 +3871,27 @@ class MacAttack(QMainWindow):
                                             return default_message
 
                                     def get_location(ip_address=""):
-                                        # Get location details for an IP address using ipinfo.io API.
-                                        # url = f"https://ipinfo.io/{ip_address}/json"
-                                        url = f"http://ip-api.com/json/{ip_address}"
-                                        # url = f"http://ip-api.com/json/{ip_address}"
+                                        # Get location details for an IP address using ip-api.com
+                                        url = f"http://ip-api.com/json/{ip_address}?fields=status,country,countryCode,regionName,city,timezone,isp,query"
                                         try:
-                                            with no_proxy_environment():  # Bypass the enviroment proxy set in the video player tab
-                                                response = requests.get(url)
+                                            with no_proxy_environment():
+                                                response = requests.get(url, timeout=10)
                                                 response.raise_for_status()
                                                 data = response.json()
+                                                country_code = data.get("countryCode", "")
+                                                # Map country codes to flag emojis
+                                                flag = ""
+                                                if len(country_code) == 2:
+                                                    flag = chr(0x1F1E6 + ord(country_code[0]) - ord('A')) + chr(0x1F1E6 + ord(country_code[1]) - ord('A'))
                                                 return {
-                                                    "City": data.get("regionName"),
+                                                    "City": data.get("city") or data.get("regionName"),
+                                                    "Region": data.get("regionName"),
                                                     "Country": data.get("country"),
+                                                    "CountryCode": country_code,
+                                                    "Flag": flag,
                                                     "Timezone": data.get("timezone"),
+                                                    "ISP": data.get("isp"),
+                                                    "IP": data.get("query"),
                                                 }
                                         except (
                                             requests.exceptions.RequestException
@@ -4065,127 +4111,233 @@ class MacAttack(QMainWindow):
                                             logging.debug(f"Original Genres: {orig_vods}")
                                             logging.debug(f"Formatted Titles Grid:\n{vods_grid}")
 
-                                    result_message = (
-                                        f"{'Portal  :':<10} {iptv_url}\n"
-                                    )
-                                    result_message += f"{'MAC Addr:':<10} {mac}\n"
+                                    # ═══════════════════════════════════════════════
+                                    # PREMIUM OUTPUT FORMAT — MacAttack Pro
+                                    # ═══════════════════════════════════════════════
 
-                                    if include_ip_addresses and middleware_ip_address:
-                                        result_message += (
-                                            f"{'PortalIP:':<10} {middleware_ip_address}"
-                                        )
+                                    # Calculate remaining days
+                                    remaining_days_str = ""
+                                    try:
+                                        exp_date_obj = None
+                                        # Try common date formats
+                                        for fmt in ["%B %d, %Y, %I:%M %p", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d", "%m/%d/%Y"]:
+                                            try:
+                                                exp_date_obj = datetime.strptime(expiry, fmt)
+                                                break
+                                            except (ValueError, TypeError):
+                                                continue
+                                        if exp_date_obj:
+                                            delta = exp_date_obj - datetime.now()
+                                            remaining_days = delta.days
+                                            if remaining_days > 0:
+                                                remaining_days_str = f" ({remaining_days} days)"
+                                            elif remaining_days == 0:
+                                                remaining_days_str = " (Today!)"
+                                            else:
+                                                remaining_days_str = f" (Expired {abs(remaining_days)} days ago)"
+                                    except Exception:
+                                        pass
 
-                                    if (
-                                        include_location_and_timezone
-                                        and include_ip_addresses
-                                        and middleware_city
-                                        and middleware_city != "Unknown"
-                                        and middleware_timezone != "Unknown"
-                                    ):
-                                        result_message += (
-                                            f" ({middleware_city}, {middleware_country})\n"
-                                            f"{'Timezone:':<10} {middleware_timezone}\n"
-                                        )
-                                    elif include_ip_addresses and middleware_ip_address:
-                                        result_message += "\n"
+                                    # Status indicator
+                                    status_emoji = "💚" if count > 0 else "🔴"
+                                    status_text = "ACTIVE" if count > 0 else "DEAD"
 
-                                    if include_deviceids:
-                                        result_message += f"{'DeviceID:':<10} {device_id}\n{'SecondID:':<10} {device_id2}\n{'Serial #:':<10} {sn}\n"
+                                    # Middleware location info
+                                    mw_flag = ""
+                                    mw_country_str = ""
+                                    mw_isp_str = ""
+                                    mw_tz_str = ""
+                                    if include_ip_addresses and include_location_and_timezone and middleware_ip_address:
+                                        mw_loc = middleware_location if 'middleware_location' in dir() else {}
+                                        mw_flag = mw_loc.get("Flag", "") if mw_loc else ""
+                                        mw_country_str = f"{mw_flag} {mw_loc.get('City', '')}, {mw_loc.get('Country', '')} [{mw_loc.get('CountryCode', '')}]" if mw_loc and mw_loc.get('City') else ""
+                                        mw_isp_str = mw_loc.get("ISP", "") if mw_loc else ""
+                                        mw_tz_str = mw_loc.get("Timezone", "") if mw_loc else ""
 
-                                    if (
-                                        include_backend_info
-                                        and domain_and_port
-                                        and middleware_ip_address != backend_ip_address
-                                    ):
-                                        result_message += (
-                                            f"{'Backend :':<10} {domain_and_port}\n"
-                                        )
-                                        if include_ip_addresses and backend_ip_address:
-                                            result_message += f"{'IP Addr :':<10} {backend_ip_address}"
-                                        if (
-                                            include_location_and_timezone
-                                            and middleware_ip_address
-                                            != backend_ip_address
-                                            and backend_city
-                                        ):
-                                            result_message += (
-                                                f" ({backend_city}, {backend_country})\n"
-                                                f"{'Timezone:':<10} {backend_timezone}\n"
-                                            )
-                                        elif include_deviceids:
-                                            result_message += "\n"
+                                    # Client location
+                                    cl_flag = ""
+                                    cl_location_str = ""
+                                    if include_ip_addresses and include_location_and_timezone and client_ip:
+                                        cl_loc = client_location if 'client_location' in dir() else {}
+                                        cl_flag = cl_loc.get("Flag", "") if cl_loc else ""
+                                        cl_location_str = f"{cl_flag} {cl_loc.get('City', '')}, {cl_loc.get('Country', '')} [{cl_loc.get('CountryCode', '')}]" if cl_loc and cl_loc.get('City') else ""
 
-                                    if include_ip_addresses and client_ip:
-                                        result_message += (
-                                            f"{'ClientIP:':<10} {client_ip}"
-                                        )
+                                    # Backend location
+                                    be_location_str = ""
+                                    be_isp_str = ""
+                                    if include_backend_info and include_ip_addresses and include_location_and_timezone and backend_ip_address:
+                                        be_loc = backend_location if 'backend_location' in dir() else {}
+                                        if be_loc:
+                                            be_flag = be_loc.get("Flag", "")
+                                            be_location_str = f"{be_flag} {be_loc.get('City', '')}, {be_loc.get('Country', '')} [{be_loc.get('CountryCode', '')}]"
+                                            be_isp_str = be_loc.get("ISP", "")
 
-                                    if (
-                                        include_location_and_timezone
-                                        and include_ip_addresses
-                                        and client_city
-                                        and client_city != "Unknown"
-                                    ):
-                                        result_message += (
-                                            f" ({client_city}, {client_country})\n"
-                                        )
-                                    elif include_ip_addresses and client_ip:
-                                        result_message += "\n"
+                                    # Proxy location
+                                    px_location_str = ""
+                                    if include_proxy_location and selected_proxy != "Your Connection":
+                                        px_loc = proxy_location if 'proxy_location' in dir() else {}
+                                        if px_loc:
+                                            px_flag = px_loc.get("Flag", "")
+                                            px_location_str = f"{px_flag} {px_loc.get('City', '')}, {px_loc.get('Country', '')}"
 
-                                    if (
-                                        include_proxy_used
-                                        and selected_proxy != "Your Connection"
-                                    ):
-                                        result_message += (
-                                            f"{'Proxy IP:':<10} {selected_proxy}"
-                                        )
+                                    # M3U / EPG links
+                                    m3u_link_1 = ""
+                                    m3u_link_2 = ""
+                                    epg_link = ""
+                                    xmltv_link = ""
+                                    if include_user_creds and username and password:
+                                        m3u_link_1 = f"{domain_and_port}/get.php?username={username}&password={password}&type=m3u_plus"
+                                        m3u_link_2 = f"{domain_and_port}/get.php?username={username}&password={password}&type=m3u_plus&output=m3u8"
+                                        epg_link = f"{domain_and_port}/client_area/index.php?username={username}&password={password}&submit"
+                                        xmltv_link = f"{domain_and_port}/xmltv.php?username={username}&password={password}"
 
-                                    if (
-                                        include_proxy_location
-                                        and selected_proxy != "Your Connection"
-                                        and include_proxy_used
-                                        and proxy_city != "Unknown"
-                                    ):
-                                        result_message += (
-                                            f" ({proxy_city}, {proxy_country})\n"
-                                        )
-                                    elif (
-                                        include_proxy_used
-                                        and selected_proxy != "Your Connection"
-                                    ):
-                                        result_message += "\n"
+                                    # ╔══════ BUILD PREMIUM OUTPUT ══════╗
+                                    sep_top    = "𓆩◉𓆪═══🔹️✦💜 𝐌𝐀𝐂𝐀𝐓𝐓𝐀𝐂𝐊 𝐏𝐑𝐎 💜✦🔹️═══𓆩◉𓆪"
+                                    sep_bottom = "𓆩◉𓆪══════════════════════════════════𓆩◉𓆪"
+                                    sep_mid    = "╠═══════════════════════════════════"
 
-                                    if (
-                                        include_user_creds
-                                        and username is not None
-                                        and password is not None
-                                    ):  # checks if include_user_creds is True and username isn't empty
-                                        result_message += f"{'Username:':<10} {username}\n{'Password:':<10} {password}\n"
+                                    result_message = f"\n{sep_top}\n"
+                                    result_message += f"╠☞ 𝐒𝐜𝐚𝐧 𝐃𝐚𝐭𝐞 ➢ {current_time}\n"
+                                    result_message += f"╠☞ 𝐒𝐭𝐚𝐭𝐮𝐬   ➢ {status_text} {status_emoji}\n"
+                                    result_message += f"{sep_mid}\n"
+                                    result_message += f"╠☞ 𝐏𝐨𝐫𝐭𝐚𝐥   ➢ {iptv_url}\n"
+                                    result_message += f"╠☞ 𝐌𝐀𝐂      ➢ {mac}\n"
+                                    result_message += f"╠☞ 𝐄𝐱𝐩𝐢𝐫𝐞   ➢ {expiry}{remaining_days_str}\n"
+                                    result_message += f"╠☞ 𝐂𝐡𝐚𝐧𝐧𝐞𝐥𝐬 ➢ {count}\n"
 
                                     if include_max_connections and max_connections:
-                                        result_message += (
-                                            f"{'Max Conn:':<10} {max_connections}\n"
-                                        )
-                                    if include_date_found:
-                                        result_message += (
-                                            f"{'Found on:':<10} {current_time}\n"
-                                        )
+                                        active_str = str(active_cons) if active_cons is not None else "0"
+                                        result_message += f"╠☞ 𝐂𝐨𝐧𝐧𝐞𝐜𝐭  ➢ active‣{active_str} ⁃ max‣{max_connections}\n"
+
+                                    if tariff_plan:
+                                        result_message += f"╠☞ 𝐓𝐚𝐫𝐢𝐟𝐟   ➢ {tariff_plan}\n"
+
+                                    if stb_type_found:
+                                        result_message += f"╠☞ 𝐒𝐓𝐁 𝐓𝐲𝐩𝐞 ➢ {stb_type_found}\n"
+
+                                    if adult_password:
+                                        result_message += f"╠☞ 𝐀𝐝𝐮𝐥𝐭 🔑  ➢ {adult_password}\n"
+
+                                    if include_user_creds and username and password:
+                                        result_message += f"{sep_mid}\n"
+                                        result_message += f"╠☞ 𝐔𝐬𝐞𝐫𝐧𝐚𝐦𝐞 ➢ {username}\n"
+                                        result_message += f"╠☞ 𝐏𝐚𝐬𝐬𝐰𝐨𝐫𝐝 ➢ {password}\n"
+
                                     if include_date_created and created_at is not None:
-                                        result_message += (
-                                            f"{'Creation:':<10} {created_at}\n"
-                                        )
+                                        result_message += f"╠☞ 𝐂𝐫𝐞𝐚𝐭𝐞𝐝  ➢ {created_at}\n"
 
-                                    result_message += f"{'Exp date:':<10} {expiry}\n{'Channels:':<10} {count}\n"
+                                    # ═══ Server & Network Info ═══
+                                    if include_ip_addresses or include_backend_info:
+                                        result_message += f"{sep_mid}\n"
+                                        result_message += f"╠✦ 𝐈𝐍𝐅𝐎 ✦ 𝐒𝐄𝐑𝐕𝐄𝐑 ✦\n"
 
-                                    file_message = result_message
+                                    if include_ip_addresses and middleware_ip_address:
+                                        result_message += f"╠☞ 𝐏𝐨𝐫𝐭𝐚𝐥 𝐈𝐏 ➢ {middleware_ip_address}\n"
+                                    if mw_country_str:
+                                        result_message += f"╠☞ 𝐍𝐚𝐭𝐢𝐨𝐧   ➢ {mw_country_str}\n"
+                                    if mw_isp_str:
+                                        result_message += f"╠☞ 𝐈𝐒𝐏      ➢ {mw_isp_str}\n"
+                                    if mw_tz_str:
+                                        result_message += f"╠☞ 𝐓𝐢𝐦𝐞𝐳𝐨𝐧𝐞 ➢ {mw_tz_str}\n"
+
+                                    if include_backend_info and domain_and_port and middleware_ip_address != backend_ip_address:
+                                        result_message += f"╠☞ 𝐁𝐚𝐜𝐤𝐞𝐧𝐝  ➢ {domain_and_port}\n"
+                                        if include_ip_addresses and backend_ip_address:
+                                            result_message += f"╠☞ 𝐁𝐚𝐜𝐤𝐞𝐧𝐝𝐈𝐏➢ {backend_ip_address}\n"
+                                        if be_location_str:
+                                            result_message += f"╠☞ 𝐁𝐄 𝐍𝐚𝐭𝐢𝐨𝐧➢ {be_location_str}\n"
+                                        if be_isp_str:
+                                            result_message += f"╠☞ 𝐁𝐄 𝐈𝐒𝐏   ➢ {be_isp_str}\n"
+
+                                    if include_ip_addresses and client_ip:
+                                        result_message += f"╠☞ 𝐂𝐥𝐢𝐞𝐧𝐭𝐈𝐏 ➢ {client_ip}\n"
+                                        if cl_location_str:
+                                            result_message += f"╠☞ 𝐂𝐥𝐢𝐞𝐧𝐭   ➢ {cl_location_str}\n"
+
+                                    if include_proxy_used and selected_proxy != "Your Connection":
+                                        result_message += f"╠☞ 𝐏𝐫𝐨𝐱𝐲 𝐈𝐏 ➢ {selected_proxy}\n"
+                                        if px_location_str:
+                                            result_message += f"╠☞ 𝐏𝐫𝐨𝐱𝐲    ➢ {px_location_str}\n"
+
+                                    # ═══ Device IDs ═══
+                                    if include_deviceids:
+                                        result_message += f"{sep_mid}\n"
+                                        result_message += f"╠☞ 𝐒𝐞𝐫𝐢𝐚𝐥 # ➢ {sn}\n"
+                                        result_message += f"╠☞ 𝐃𝐞𝐯𝐢𝐜𝐞𝐈𝐃 ➢ 1️⃣❖2️⃣ {device_id}\n"
+                                        result_message += f"╠☞ 𝐈𝐃₂      ➢ {device_id2}\n"
+                                        result_message += f"╠☞ 𝐒𝐢𝐠𝐧𝐚𝐭𝐮𝐫𝐞➢ {sig}\n"
+
+                                    # ═══ M3U / EPG Links ═══
+                                    if m3u_link_1:
+                                        result_message += f"{sep_mid}\n"
+                                        result_message += f"▄▄𝗠𝟯𝗨¹═─ {m3u_link_1}\n"
+                                        result_message += f"▄▄𝗠𝟯𝗨²═─ {m3u_link_2}\n"
+                                        result_message += f"▄▄ˣ𝗘𝗣𝗚ˣ═─ {epg_link}\n"
+                                        result_message += f"▄▄ˣ𝗫𝗠𝗟ˣ═─ {xmltv_link}\n"
+
+                                    # ═══ Playlist / VOD genres ═══
                                     if include_genres and titles_str:
-                                        result_message += f"{'Playlist:':<10} {titles_grid}\n"
-                                        file_message += f"{'Playlist:':<10} {orig_genres}\n"
-                                        
-                                        
+                                        result_message += f"{sep_mid}\n"
+                                        result_message += f"╠☞ 𝐏𝐥𝐚𝐲𝐥𝐢𝐬𝐭 ➢ {titles_grid}\n"
+
                                     if include_vod and vod_str:
-                                        result_message += f"{'VOD list:':<10} {vods_grid}\n"
-                                        file_message += f"{'VOD list:':<10} {orig_vods}\n"
+                                        result_message += f"╠☞ 𝐕𝐎𝐃      ➢ {vods_grid}\n"
+
+                                    # ═══ Footer ═══
+                                    result_message += f"╠☞ 𝐇𝐢𝐭 𝐛𝐲 ☛ MacAttack Pro ☚\n"
+                                    result_message += f"{sep_bottom}\n"
+
+                                    # ═══ File output (plain text, no Unicode art) ═══
+                                    file_message = f"Portal  : {iptv_url}\n"
+                                    file_message += f"MAC Addr: {mac}\n"
+                                    file_message += f"Expire  : {expiry}{remaining_days_str}\n"
+                                    file_message += f"Channels: {count}\n"
+                                    file_message += f"Status  : {status_text}\n"
+                                    if include_max_connections and max_connections:
+                                        active_str_f = str(active_cons) if active_cons is not None else "0"
+                                        file_message += f"Connect : active={active_str_f} max={max_connections}\n"
+                                    if tariff_plan:
+                                        file_message += f"Tariff  : {tariff_plan}\n"
+                                    if stb_type_found:
+                                        file_message += f"STB Type: {stb_type_found}\n"
+                                    if adult_password:
+                                        file_message += f"Adult PW: {adult_password}\n"
+                                    if include_user_creds and username and password:
+                                        file_message += f"Username: {username}\nPassword: {password}\n"
+                                    if include_date_created and created_at is not None:
+                                        file_message += f"Created : {created_at}\n"
+                                    if include_date_found:
+                                        file_message += f"Found on: {current_time}\n"
+                                    if include_ip_addresses and middleware_ip_address:
+                                        file_message += f"PortalIP: {middleware_ip_address}\n"
+                                    if mw_country_str:
+                                        file_message += f"Nation  : {mw_country_str}\n"
+                                    if mw_isp_str:
+                                        file_message += f"ISP     : {mw_isp_str}\n"
+                                    if mw_tz_str:
+                                        file_message += f"Timezone: {mw_tz_str}\n"
+                                    if include_backend_info and domain_and_port:
+                                        file_message += f"Backend : {domain_and_port}\n"
+                                        if include_ip_addresses and backend_ip_address:
+                                            file_message += f"BackndIP: {backend_ip_address}\n"
+                                    if include_ip_addresses and client_ip:
+                                        file_message += f"ClientIP: {client_ip}\n"
+                                    if include_proxy_used and selected_proxy != "Your Connection":
+                                        file_message += f"Proxy IP: {selected_proxy}\n"
+                                    if include_deviceids:
+                                        file_message += f"Serial #: {sn}\n"
+                                        file_message += f"DeviceID: {device_id}\n"
+                                        file_message += f"SecondID: {device_id2}\n"
+                                        file_message += f"Signatur: {sig}\n"
+                                    if m3u_link_1:
+                                        file_message += f"M3U Link: {m3u_link_1}\n"
+                                        file_message += f"M3U8    : {m3u_link_2}\n"
+                                        file_message += f"EPG     : {epg_link}\n"
+                                        file_message += f"XMLTV   : {xmltv_link}\n"
+                                    if include_genres and titles_str:
+                                        file_message += f"Playlist: {orig_genres}\n"
+                                    if include_vod and vod_str:
+                                        file_message += f"VOD list: {orig_vods}\n"
                                         
 
 
@@ -4410,17 +4562,6 @@ class MacAttack(QMainWindow):
                         or "DNS lookup failed" in res.text
                         or "ERR_DNS_FAIL" in res.text
                     ):
-                        # Track error count for the proxy
-                        if selected_proxy not in self.proxy_error_counts:
-                            self.proxy_error_counts[selected_proxy] = 1
-                        else:
-                            self.proxy_error_counts[selected_proxy] += 1
-                        self.update_error_text_signal.emit(
-                            f"Error {self.proxy_error_counts[selected_proxy]} for Proxy: {selected_proxy} : <b>DNS resolution error</b> DNS Issue with proxy"
-                        )
-                        if self.remove_proxy(selected_proxy, self.proxy_error_counts):
-                            break
-                    elif "ERR_DNS_FAIL" in res.text:
                         # Track error count for the proxy
                         if selected_proxy not in self.proxy_error_counts:
                             self.proxy_error_counts[selected_proxy] = 1
@@ -4816,13 +4957,10 @@ class MacAttack(QMainWindow):
         self.running = False
         if self.proxy_enabled_checkbox.isChecked():
             self.update_error_text_signal.emit(
-                "\n░██████╗████████╗░█████╗░██████╗░██████╗░██╗███╗░░██╗░██████╗░██╗\n"
-                "██╔════╝╚══██╔══╝██╔══██╗██╔══██╗██╔══██╗██║████╗░██║██╔════╝░██║\n"
-                "╚█████╗░░░░██║░░░██║░░██║██████╔╝██████╔╝██║██╔██╗██║██║░░██╗░██║\n"
-                "░╚═══██╗░░░██║░░░██║░░██║██╔═══╝░██╔═══╝░██║██║╚████║██║░░╚██╗╚═╝\n"
-                "██████╔╝░░░██║░░░╚█████╔╝██║░░░░░██║░░░░░██║██║░╚███║╚██████╔╝██╗\n"
-                "╚═════╝░░░░╚═╝░░░░╚════╝░╚═╝░░░░░╚═╝░░░░░╚═╝╚═╝░░╚══╝░╚═════╝░╚═╝\n"
-                "Please wait for background tasks to complete.\n Results may still appear in the next few minutes.\n"
+                "\n𓆩◉𓆪═══🔹️✦💜 𝐒𝐓𝐎𝐏𝐏𝐈𝐍𝐆 💜✦🔹️═══𓆩◉𓆪\n"
+                "╠☞ Please wait for background tasks to complete.\n"
+                "╠☞ Results may still appear in the next few minutes.\n"
+                "𓆩◉𓆪══════════════════════════════════𓆩◉𓆪\n"
             )
 
         self.killthreads()
@@ -4869,13 +5007,9 @@ class MacAttack(QMainWindow):
             # Once all threads are done, reset the GUI on the main thread
             QTimer.singleShot(0, self._reset_gui_after_cleanup)
             self.update_error_text_signal.emit(
-                "███████╗██╗███╗░░██╗██╗░██████╗██╗░░██╗███████╗██████╗░██╗\n"
-                "██╔════╝██║████╗░██║██║██╔════╝██║░░██║██╔════╝██╔══██╗██║\n"
-                "█████╗░░██║██╔██╗██║██║╚█████╗░███████║█████╗░░██║░░██║██║\n"
-                "██╔══╝░░██║██║╚████║██║░╚═══██╗██╔══██║██╔══╝░░██║░░██║╚═╝\n"
-                "██║░░░░░██║██║░╚███║██║██████╔╝██║░░██║███████╗██████╔╝██╗\n"
-                "╚═╝░░░░░╚═╝╚═╝░░╚══╝╚═╝╚═════╝░╚═╝░░╚═╝╚══════╝╚═════╝░╚═╝\n"
-                "All Tasks have completed."
+                "\n𓆩◉𓆪═══🔹️✦💚 𝐅𝐈𝐍𝐈𝐒𝐇𝐄𝐃 💚✦🔹️═══𓆩◉𓆪\n"
+                f"╠☞ All Tasks have completed. Hits: {self.hits}\n"
+                "𓆩◉𓆪══════════════════════════════════𓆩◉𓆪\n"
             )
             self.cleaningup = 0
 
@@ -4883,6 +5017,21 @@ class MacAttack(QMainWindow):
         # Safely reset GUI elements on the main thread
         logging.debug("All threads stopped. Resetting GUI.")
         self.threads = []  # Clear the thread list
+        
+        if self.running and hasattr(self, 'portal_queue') and len(self.portal_queue) > 0:
+            self.update_error_text_signal.emit(
+                f"\n𓆩◉𓆪═══🔹️✦ 𝐌𝐔𝐋𝐓𝐈-𝐏𝐎𝐑𝐓𝐀𝐋 𝐐𝐔𝐄𝐔𝐄 ✦🔹️═══𓆩◉𓆪\n"
+                f"╠☞ Moving to next portal in queue... ({len(self.portal_queue)} left)\n"
+                f"𓆩◉𓆪══════════════════════════════════𓆩◉𓆪\n"
+            )
+            # Reset MAC generation to test the next portal with fresh MAC list
+            self.generated_count = 0
+            if hasattr(self, 'sequential_mac_counter'):
+                self.sequential_mac_counter = 0
+                
+            QTimer.singleShot(1000, self.start_threads)
+            return
+
         self.start_button.setDisabled(False)
         self.stop_button.setDisabled(True)
         self.brute_mac_label.setText("")
